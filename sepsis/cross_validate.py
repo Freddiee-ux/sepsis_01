@@ -91,7 +91,11 @@ def nested_cross_validate(model,
         else:
             if print_progress:
                 print("\tStarting grid search ....")
-            skfgs = StratifiedKFold(n_splits=num_folds-1, random_state=seed)
+            skfgs = StratifiedKFold(
+                n_splits=num_folds - 1,
+                shuffle=False,
+                random_state=None
+            )
             gs = GridSearchCV(estimator=model, param_grid=parameter_candidates, cv=skfgs, scoring=cv_scoring,
                               n_jobs=n_jobs)
             gs.fit(X_cv, y_cv)

@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from sklearn.model_selection import learning_curve
-from sklearn.neighbors.kde import KernelDensity
+from sklearn.neighbors import KernelDensity
 
 LABEL_FONT_SIZE = 16
 TITLE_FONT_SIZE = 18
@@ -218,9 +218,9 @@ def plot_nested_cv_PR(precision_scores, recall_scores, avg_precision_scores, tit
 
 def set_tick_fontsize(ax, fs):
     for tick in ax.xaxis.get_major_ticks():
-        tick.label.set_fontsize(fs)
+        tick.label1.set_fontsize(fs)
     for tick in ax.yaxis.get_major_ticks():
-        tick.label.set_fontsize(fs)
+        tick.label1.set_fontsize(fs)
 
 
 def savePdf(filename,dpi=300, close_fig_when_done=True):

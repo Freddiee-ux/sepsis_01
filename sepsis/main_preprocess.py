@@ -4,18 +4,23 @@
 __author__ = 'Aaron J Masino'
 
 import os
-from sklearn.preprocessing.imputation import Imputer
 import numpy as np
 import pandas as pd
+from sklearn.impute import SimpleImputer
 from sepsis import imputation, log_worker
-from sepsis import plotting as splt
 
 # *******************************  GLOBAL PARAMETERS ******************************************
 # files & directories
 date_string='2018-05-14'
-data_dir = os.path.join('..','data')
-case_file = os.path.join(data_dir, 'raw','CASES_FILE')
-control_file = os.path.join(data_dir,'raw','CONTROLS_FILE')
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+data_dir = os.path.join(project_root, "data")
+raw_dir = os.path.join(data_dir, "raw")
+interim_dir = os.path.join(data_dir, "interim")
+processed_dir = os.path.join(data_dir, "processed")
+os.makedirs(interim_dir, exist_ok=True)
+
+case_file = os.path.join(raw_dir, "CASES_FILE.csv")
+control_file = os.path.join(raw_dir, "CONTROLS_FILE.csv")
 
 # limit of missing data percentage for imputation. Data missing at rate above cutoff will be
 # dropped from data (enter as integer percent)
@@ -61,7 +66,7 @@ X = pd.concat([cases[cases['sepsis_group'].isin(CASE_GRPS)],
                controls[controls['sepsis_group'].isin(CONTROL_GRPS)]])
 
 # log case / control stats
-of = os.path.join(data_dir, "interim", "case_control_stats.txt")
+of = os.path.join(interim_dir, "case_control_stats.txt")
 log_worker.log_line("samples count: {0}\n".format(len(X)), of)
 y = X['sepsis']
 log_worker.log_line("target counts\n{0}\n".format(y.value_counts()), of)
@@ -70,7 +75,7 @@ log_worker.log_line("Incidence Rate (percent): {0:.3f}\n".format(100 * np.sum(y)
 # Imputation
 missing_percentages = imputation.missing_percents(X)
 log_worker.log_dictionary(missing_percentages, "Missing Data Percentages\n", False,
-                          os.path.join(data_dir,"interim", "missing_data_percents.txt"))
+                          os.path.join(interim_dir, "missing_data_percents.txt"))
 
 # drop columns with missing percentage over threshold
 #cols_to_drop = []
@@ -84,7 +89,7 @@ for c in cols_to_drop:
         cols_to_norm.remove(c)
 
 # impute missing values
-imp = Imputer(strategy='mean', axis=0)
+imp = SimpleImputer(strategy='mean')
 Ximp = imp.fit_transform(X)
 cnames = X.columns
 X = pd.DataFrame(data=Ximp, columns=cnames)
@@ -93,5 +98,4 @@ X = pd.DataFrame(data=Ximp, columns=cnames)
 X[cols_to_norm] = X[cols_to_norm].apply(lambda x: (x-x.mean())/x.std())
 
 ## Store processed data
-X.to_csv(os.path.join(data_dir,"interim","{0}_mc{1}_imputed_normalized_{2}.csv".
-                      format(file_prefix,missing_cutoff,date_string)), index=False)
+X.to_csv(os.path.join(processed_dir, "preprocessed_data.csv"), index=False)

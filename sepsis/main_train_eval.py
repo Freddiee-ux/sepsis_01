@@ -1,6 +1,12 @@
 __author__ = 'Aaron J Masino'
 
 import os
+import sys
+
+_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
 import numpy as np
 
 import sepsis.cross_validate as scv
@@ -20,9 +26,9 @@ from sklearn.neighbors import KNeighborsClassifier
 import pandas as pd
 
 # ************************** GLOBAL PARAMETERS ******************************************
-data_dir = os.path.join('..','data')
+data_dir = os.path.join(_project_root, 'data')
 input_data_file = os.path.join(data_dir, "processed",
-                               "PREPROCESSED_DATA_FILE_PATH.csv")
+                               "preprocessed_data.csv")
 output_dir = os.path.join(data_dir, 'interim')
 figure_dir = output_dir
 metrics_output_file = os.path.join(output_dir, 'scoring_metrics.txt')
@@ -49,8 +55,13 @@ all_data = pd.read_csv(input_data_file).sample(frac=1, random_state=seed)
 y = all_data['sepsis']
 X = all_data.drop('sepsis', axis=1).drop('sepsis_group', axis=1)
 
-# Use stratified K-fold to get data split indices
-skf = StratifiedKFold(n_splits=num_folds, random_state=seed, shuffle=shuffle_on_split)
+# Use stratified K-fold to get data split indices.
+# sklearn raises if random_state is set while shuffle=False.
+skf = StratifiedKFold(
+    n_splits=num_folds,
+    shuffle=shuffle_on_split,
+    random_state=seed if shuffle_on_split else None
+)
 folds = {}
 fold_idx = 0
 for train_split, test_split in skf.split(X,y):
@@ -91,7 +102,7 @@ model = SVC(kernel='rbf', probability=True, class_weight='balanced', random_stat
 ncv_analysis(model, parameter_candidates, folds, X, y, feature_selector, "SVM (RBF)", "SVM-RBF",
              figure_dir, metrics_output_file, store_prediction_probs,
              os.path.join(prediction_prob_dir, "SVM_pred_probs.csv"),
-             os.path.join(prediction_prob_dir, "SVM_targets.csv"), seed=seed, n_jobs=4)
+             os.path.join(prediction_prob_dir, "SVM_targets.csv"), seed=seed, n_jobs=1)
 
 #  --------------------------  Gaussian NB -------------------------------------------------------
 model = GaussianNB()
@@ -122,9 +133,9 @@ ncv_analysis(model, parameter_candidates, folds, X, y, feature_selector, "Random
              os.path.join(prediction_prob_dir, "RandomForest_targets.csv"), seed=seed)
 
 #  --------------------------  AdaBoost -------------------------------------------------
-parameter_candidates = [{'base_estimator': [DecisionTreeClassifier(),
-                                            LogisticRegression(class_weight='balanced', random_state=seed),
-                                            SVC(kernel='rbf', probability=True,class_weight='balanced', random_state=seed)],
+parameter_candidates = [{'estimator': [DecisionTreeClassifier(),
+                                       LogisticRegression(class_weight='balanced', random_state=seed),
+                                       SVC(kernel='rbf', probability=True,class_weight='balanced', random_state=seed)],
                          'n_estimators': [50, 100],
                          'learning_rate': [1.0, 0.5, 0.1]}]
 model = AdaBoostClassifier(random_state=seed)
